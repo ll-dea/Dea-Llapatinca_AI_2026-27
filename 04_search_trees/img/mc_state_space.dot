@@ -1,0 +1,38 @@
+graph G {
+  graph [labelloc="t", fontsize=20, fontname="Helvetica", label="Missionaries & Cannibals - complete state space (legal states)", rankdir=LR, nodesep=0.25, ranksep=0.6];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#ffffff"];
+  edge [fontname="Helvetica", fontsize=9, color="#888888"];
+  "(3, 3, 1)" [label="(3,3,1)\nMMMCCC [B]~~    -", fillcolor="#d7ecff", color="#1f6fb2", penwidth=2];
+  "(3, 2, 1)" [label="(3,2,1)\nMMMCC [B]~~    C", color="#1f6fb2", penwidth=2];
+  "(3, 2, 0)" [label="(3,2,0)\nMMMCC    ~~[B] C"];
+  "(3, 1, 1)" [label="(3,1,1)\nMMMC [B]~~    CC", color="#1f6fb2", penwidth=2];
+  "(2, 2, 1)" [label="(2,2,1)\nMMCC [B]~~    MC", color="#1f6fb2", penwidth=2];
+  "(3, 1, 0)" [label="(3,1,0)\nMMMC    ~~[B] CC", color="#1f6fb2", penwidth=2];
+  "(2, 2, 0)" [label="(2,2,0)\nMMCC    ~~[B] MC"];
+  "(0, 3, 1)" [label="(0,3,1)\nCCC [B]~~    MMM", color="#1f6fb2", penwidth=2];
+  "(3, 0, 0)" [label="(3,0,0)\nMMM    ~~[B] CCC", color="#1f6fb2", penwidth=2];
+  "(1, 1, 1)" [label="(1,1,1)\nMC [B]~~    MMCC", color="#1f6fb2", penwidth=2];
+  "(0, 2, 1)" [label="(0,2,1)\nCC [B]~~    MMMC"];
+  "(1, 1, 0)" [label="(1,1,0)\nMC    ~~[B] MMCC", color="#1f6fb2", penwidth=2];
+  "(0, 2, 0)" [label="(0,2,0)\nCC    ~~[B] MMMC", color="#1f6fb2", penwidth=2];
+  "(0, 1, 1)" [label="(0,1,1)\nC [B]~~    MMMCC"];
+  "(0, 1, 0)" [label="(0,1,0)\nC    ~~[B] MMMCC", color="#1f6fb2", penwidth=2];
+  "(0, 0, 0)" [label="(0,0,0)\n-    ~~[B] MMMCCC", fillcolor="#c8f0c8", color="#1d7a1d", penwidth=2];
+  "(0, 0, 0)" -- "(0, 1, 1)" [label="C"];
+  "(0, 0, 0)" -- "(0, 2, 1)" [label="CC"];
+  "(0, 0, 0)" -- "(1, 1, 1)" [label="MC", color="#1f6fb2", penwidth=2.5];
+  "(0, 1, 0)" -- "(0, 2, 1)" [label="C"];
+  "(0, 1, 0)" -- "(0, 3, 1)" [label="CC", color="#1f6fb2", penwidth=2.5];
+  "(0, 1, 0)" -- "(1, 1, 1)" [label="M", color="#1f6fb2", penwidth=2.5];
+  "(0, 2, 0)" -- "(0, 3, 1)" [label="C", color="#1f6fb2", penwidth=2.5];
+  "(0, 2, 0)" -- "(2, 2, 1)" [label="MM", color="#1f6fb2", penwidth=2.5];
+  "(1, 1, 0)" -- "(2, 2, 1)" [label="MC", color="#1f6fb2", penwidth=2.5];
+  "(1, 1, 0)" -- "(3, 1, 1)" [label="MM", color="#1f6fb2", penwidth=2.5];
+  "(2, 2, 0)" -- "(3, 2, 1)" [label="M"];
+  "(2, 2, 0)" -- "(3, 3, 1)" [label="MC"];
+  "(3, 0, 0)" -- "(3, 1, 1)" [label="C", color="#1f6fb2", penwidth=2.5];
+  "(3, 0, 0)" -- "(3, 2, 1)" [label="CC", color="#1f6fb2", penwidth=2.5];
+  "(3, 1, 0)" -- "(3, 2, 1)" [label="C", color="#1f6fb2", penwidth=2.5];
+  "(3, 1, 0)" -- "(3, 3, 1)" [label="CC", color="#1f6fb2", penwidth=2.5];
+  "(3, 2, 0)" -- "(3, 3, 1)" [label="C"];
+}
