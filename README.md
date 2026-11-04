@@ -4,7 +4,7 @@
 
 **Author:** Dea Llapatinca
 
-This repository contains the solution of the first semester assignment (*Detyra 1*). For every problem the README in its folder contains the **model**, the **representation** (variables, domains, constraints), the **objective function**, the **landscape** (size of the search space) and the **results**; the Python program implements the required search algorithm.
+This repository contains the solution of the first semester assignment. For every problem the README in its folder contains the **model**, the **representation** (variables, domains, constraints), the **objective function**, the **landscape** (size of the search space) and the **results**; the Python program implements the required search algorithm.
 
 | # | Problem | Algorithm | Folder | Main result |
 |---|---|---|---|---|
