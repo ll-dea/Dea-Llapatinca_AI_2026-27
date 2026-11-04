@@ -1,39 +1,15 @@
 """
-Sudoku Solver - Breadth First Search (BFS) with Backtracking
-=============================================================
+Sudoku solver - BFS with backtracking.
 
-Representation
---------------
-    grid = string of 81 characters (row by row), '.' = empty cell
-    variable  x(r, c)  for every EMPTY cell,  domain {1..9}
+The grid is a string of 81 chars ('.' = empty). A node of the search tree is a
+partial grid, its children fill one more cell. BFS uses a FIFO queue, so the
+shallowest nodes are expanded first. Children that break a row/column/box
+constraint are never created (backtracking), a node with no valid children is
+simply dropped.
 
-Constraints (hard)
-------------------
-    every row, every column and every 3x3 box contains each digit once
-    the given digits (clues) cannot be changed
-
-Search tree
------------
-    root      = the puzzle
-    child     = the same grid with ONE more empty cell filled
-    goal      = no empty cell left (depth = number of empty cells)
-
-BFS expands the shallowest node first (FIFO queue = frontier).
-"Backtracking" = a child is generated only if the new digit is consistent
-with its row, column and box.  A node with no consistent child is a dead
-end: it is simply dropped from the queue and the search continues with
-the other branches - the partial grid is never extended further.
-
-Cell order (which empty cell is filled next):
-    row   - the first empty cell in row-major order (pure uninformed BFS)
-    mrv   - the empty cell with the fewest possible digits
-            ("minimum remaining values", optional improvement)
-
-Usage
------
-    python sudoku_bfs.py                    # solve the Easy, Medium, Hard bank
+    python sudoku_bfs.py                   # easy, medium and hard puzzles from puzzles.py
     python sudoku_bfs.py --level hard
-    python sudoku_bfs.py --order mrv
+    python sudoku_bfs.py --order mrv       # fill the most constrained cell first
     python sudoku_bfs.py --puzzle "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"
     python sudoku_bfs.py --file my_sudoku.txt
     python sudoku_bfs.py --generate medium --seed 7
@@ -49,14 +25,12 @@ from collections import deque
 from puzzles import PUZZLES, PEERS, UNITS, DIGITS, normalize, rate, generate, candidates
 
 
-# ====================================================================== #
-# BFS with backtracking
-# ====================================================================== #
 def next_cell(grid, order):
-    """Return (cell, list of consistent digits) for the cell to fill next."""
+    """Which empty cell to fill next and the digits allowed there."""
     if order == "row":
         i = grid.index(".")
         return i, sorted(candidates(grid, i))
+    # mrv: the empty cell with the fewest candidates
     best_i, best_c = None, None
     for i in range(81):
         if grid[i] == ".":
@@ -69,22 +43,21 @@ def next_cell(grid, order):
 
 
 def bfs(puzzle, order="row", find_all=False, max_frontier=5_000_000):
-    """Breadth first search.  Returns (solutions, statistics)."""
     stats = {"generated": 1, "expanded": 0, "dead_ends": 0,
              "max_frontier": 1, "depth": puzzle.count(".")}
     start = time.time()
 
-    # the clues themselves must be consistent
+    # clues that already clash -> no solution
     for i in range(81):
         if puzzle[i] != "." and any(puzzle[j] == puzzle[i] for j in PEERS[i]):
             stats["time"] = 0.0
             return [], stats
 
-    frontier = deque([puzzle])                  # FIFO queue
+    frontier = deque([puzzle])
     solutions = []
     while frontier:
-        grid = frontier.popleft()               # shallowest node first
-        if "." not in grid:                     # goal test
+        grid = frontier.popleft()
+        if "." not in grid:
             solutions.append(grid)
             if not find_all:
                 break
@@ -93,9 +66,9 @@ def bfs(puzzle, order="row", find_all=False, max_frontier=5_000_000):
         stats["expanded"] += 1
         cell, digits = next_cell(grid, order)
         if not digits:
-            stats["dead_ends"] += 1             # backtrack: drop this branch
+            stats["dead_ends"] += 1
             continue
-        for d in digits:                        # only consistent children
+        for d in digits:
             frontier.append(grid[:cell] + d + grid[cell + 1:])
             stats["generated"] += 1
         stats["max_frontier"] = max(stats["max_frontier"], len(frontier))
@@ -106,24 +79,14 @@ def bfs(puzzle, order="row", find_all=False, max_frontier=5_000_000):
     return solutions, stats
 
 
-# ====================================================================== #
-# objective function
-# ====================================================================== #
 def objective(grid, puzzle=None):
-    """f(grid) = sum over the 27 units (rows, columns, boxes) of
-                 (9 - number of distinct digits in the unit)
-                 + number of changed clues (if the puzzle is given).
-    For a complete grid 9 - |distinct| is the number of duplicates.
-    f = 0  <=>  every unit contains 1..9  <=>  grid is a solution."""
+    """For every row/column/box: 9 - number of different digits. 0 = solved."""
     f = sum(9 - len({grid[i] for i in unit if grid[i] != "."}) for unit in UNITS)
     if puzzle:
-        f += sum(1 for a, b in zip(puzzle, grid) if a != "." and a != b)
+        f += sum(1 for a, b in zip(puzzle, grid) if a != "." and a != b)   # changed clues
     return f
 
 
-# ====================================================================== #
-# landscape
-# ====================================================================== #
 def sci(x):
     if x == 0:
         return "0"
@@ -136,7 +99,7 @@ def landscape(puzzle, samples=2000, seed=1):
     e = len(empty)
     a = 9 ** e
     b = 1
-    for unit in UNITS[:9]:                      # rows
+    for unit in UNITS[:9]:
         missing = sum(1 for i in unit if puzzle[i] == ".")
         b *= math.factorial(missing)
     c = 1
@@ -147,9 +110,10 @@ def landscape(puzzle, samples=2000, seed=1):
     print(f"  B  every row a permutation (clues kept) prod(missing_r!) = {sci(b)}")
     print(f"  C  only digits allowed by the clues     prod |D(cell)|   = {sci(c)}")
 
+    # objective of random grids where every row is a permutation
     rng = random.Random(seed)
     vals = []
-    for _ in range(samples):                    # random points of representation B
+    for _ in range(samples):
         g = list(puzzle)
         for unit in UNITS[:9]:
             missing = [d for d in DIGITS if d not in [g[i] for i in unit]]
@@ -163,9 +127,6 @@ def landscape(puzzle, samples=2000, seed=1):
           f"mean={sum(vals) / len(vals):.1f} max={vals[-1]}")
 
 
-# ====================================================================== #
-# output / CLI
-# ====================================================================== #
 def show(grid):
     lines = []
     for r in range(9):
@@ -176,14 +137,14 @@ def show(grid):
     return "\n".join(lines)
 
 
-def side_by_side(left, right, title_left="Puzzle", title_right="Solution"):
+def side_by_side(left, right):
     a, b = show(left).split("\n"), show(right).split("\n")
-    out = [f"{title_left:<25}{title_right}"]
+    out = [f"{'Puzzle':<25}Solution"]
     out += [f"{x:<25}{y}" for x, y in zip(a, b)]
     return "\n".join(out)
 
 
-def solve_and_report(name, puzzle, order, find_all):
+def solve(name, puzzle, order, find_all):
     print("=" * 60)
     print(f"{name}   clues={81 - puzzle.count('.')}  rated={rate(puzzle)}  order={order}")
     print("=" * 60)
@@ -191,10 +152,10 @@ def solve_and_report(name, puzzle, order, find_all):
         sols, st = bfs(puzzle, order, find_all)
     except MemoryError as err:
         print(f"  {err}\n")
-        return None
+        return
     if not sols:
         print("  no solution\n")
-        return st
+        return
     print(side_by_side(puzzle, sols[0]))
     print(f"\n  objective f = {objective(sols[0], puzzle)} (0 = solved)")
     print(f"  depth of goal = {st['depth']}  generated = {st['generated']:,}  "
@@ -203,7 +164,6 @@ def solve_and_report(name, puzzle, order, find_all):
     if find_all:
         print(f"  number of solutions = {len(sols)}")
     print()
-    return st
 
 
 def main():
@@ -216,8 +176,7 @@ def main():
     ap.add_argument("--seed", type=int, default=None, help="seed for --generate")
     ap.add_argument("--order", choices=["row", "mrv"], default="row",
                     help="which empty cell to fill next (default: row)")
-    ap.add_argument("--all", action="store_true",
-                    help="continue the BFS and count all solutions")
+    ap.add_argument("--all", action="store_true", help="continue the BFS and count all solutions")
     ap.add_argument("--landscape", action="store_true", help="print search-space sizes")
     args = ap.parse_args()
 
@@ -238,8 +197,7 @@ def main():
             jobs.extend(PUZZLES[lv])
 
     if args.landscape:
-        print("Full 9x9 grid: 9^81 =", sci(9 ** 81),
-              "| valid complete Sudoku grids = 6.67e21\n")
+        print("Full 9x9 grid: 9^81 =", sci(9 ** 81), "| valid complete Sudoku grids = 6.67e21\n")
         for name, p in jobs:
             print(name)
             landscape(p)
@@ -247,7 +205,7 @@ def main():
         return
 
     for name, p in jobs:
-        solve_and_report(name, p, args.order, args.all)
+        solve(name, p, args.order, args.all)
 
 
 if __name__ == "__main__":

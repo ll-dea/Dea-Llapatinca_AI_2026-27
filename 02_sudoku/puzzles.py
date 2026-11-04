@@ -1,14 +1,12 @@
 """
-Sudoku puzzle bank (Easy / Medium / Hard), difficulty rater and generator.
+Puzzle bank, difficulty rating and a simple generator.
 
-A puzzle is a string of 81 characters read row by row, '.' or '0' = empty.
+A puzzle is a string of 81 characters, row by row, '.' = empty.
 
-Difficulty levels (rated by rate()):
-    Easy    solvable with "naked singles" only
-            (a cell that has exactly one possible digit)
-    Medium  needs "hidden singles" as well
-            (a digit that fits in only one cell of a row / column / box)
-    Hard    cannot be finished with singles -> guessing (search) is required
+Levels:
+    easy   - solvable with naked singles only (a cell with one possible digit)
+    medium - needs hidden singles too (a digit with only one place in a unit)
+    hard   - singles are not enough, you have to guess
 """
 
 import random
@@ -38,16 +36,20 @@ DIGITS = "123456789"
 ROW = [i // 9 for i in range(81)]
 COL = [i % 9 for i in range(81)]
 BOX = [(i // 27) * 3 + (i % 9) // 3 for i in range(81)]
+
+# the 27 units: 9 rows, 9 columns, 9 boxes
 UNITS = ([[i for i in range(81) if ROW[i] == r] for r in range(9)] +
          [[i for i in range(81) if COL[i] == c] for c in range(9)] +
          [[i for i in range(81) if BOX[i] == b] for b in range(9)])
+
+# the 20 cells that share a row, column or box with cell i
 PEERS = [sorted(j for j in range(81) if j != i and
                 (ROW[i] == ROW[j] or COL[i] == COL[j] or BOX[i] == BOX[j]))
          for i in range(81)]
 
 
 def normalize(text):
-    """Accept '.', '0' or '_' for empty cells and ignore whitespace / separators."""
+    """Keep only digits and '.', '0', '_' (empty); check there are 81 cells."""
     cells = [ch for ch in text if ch in DIGITS or ch in ".0_"]
     if len(cells) != 81:
         raise ValueError(f"a sudoku needs 81 cells, got {len(cells)}")
@@ -58,7 +60,8 @@ def candidates(grid, i):
     return set(DIGITS) - {grid[j] for j in PEERS[i]}
 
 
-def _apply_singles(grid, hidden):
+def apply_singles(grid, hidden):
+    """Fill naked singles (and hidden singles if hidden=True) until stuck."""
     g = list(grid)
     while True:
         progress = False
@@ -84,25 +87,23 @@ def _apply_singles(grid, hidden):
 
 
 def rate(puzzle):
-    """Return 'easy', 'medium' or 'hard' (see module docstring)."""
-    after = _apply_singles(puzzle, hidden=False)
+    after = apply_singles(puzzle, hidden=False)
     if after and "." not in after:
         return "easy"
-    after = _apply_singles(puzzle, hidden=True)
+    after = apply_singles(puzzle, hidden=True)
     if after and "." not in after:
         return "medium"
     return "hard"
 
 
 def count_solutions(grid, limit=2):
-    """Number of solutions (stops counting at `limit`)."""
+    """Counts solutions, stops at limit (used to check uniqueness)."""
     g = list(grid)
     if "." not in g:
         return 1
-    # most constrained empty cell first - this helper only checks uniqueness
     best = min((i for i in range(81) if g[i] == "."), key=lambda i: len(candidates(g, i)))
     total = 0
-    for d in candidates(g, best):
+    for d in sorted(candidates(g, best)):
         g[best] = d
         total += count_solutions("".join(g), limit - total)
         if total >= limit:
@@ -111,13 +112,13 @@ def count_solutions(grid, limit=2):
     return total
 
 
-def _random_full_grid(rng):
+def random_full_grid(rng):
     g = ["."] * 81
 
     def fill(i):
         if i == 81:
             return True
-        digits = list(candidates(g, i))
+        digits = sorted(candidates(g, i))
         rng.shuffle(digits)
         for d in digits:
             g[i] = d
@@ -131,10 +132,10 @@ def _random_full_grid(rng):
 
 
 def generate(level, seed=None, clues=24, attempts=200):
-    """Generate a puzzle with a unique solution and the requested level."""
+    """Make a full grid, remove clues while the solution stays unique, keep it if the level matches."""
     rng = random.Random(seed)
     for _ in range(attempts):
-        g = _random_full_grid(rng)
+        g = random_full_grid(rng)
         cells = list(range(81))
         rng.shuffle(cells)
         for i in cells:

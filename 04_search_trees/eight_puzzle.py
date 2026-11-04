@@ -1,23 +1,13 @@
 """
-8-Puzzle - construction of the search tree (BFS and depth-limited DFS)
-======================================================================
+8-Puzzle search trees.
 
-State        tuple of 9 numbers read row by row, 0 = blank
-Initial      (default)  1 2 3 / _ 4 6 / 7 5 8
-Actions      move the blank Up, Down, Left, Right (if it stays on the board)
-Goal         1 2 3 / 4 5 6 / 7 8 _
-Path cost    1 per move
+State = 9 numbers row by row, 0 is the blank. Moves = blank up/down/left/right.
+Goal = 1 2 3 / 4 5 6 / 7 8 _
 
-The script builds
-  * the complete search tree up to a given depth (node counts per level),
-  * the BFS search tree (graph search: repeated states are not expanded),
-  * the DFS search tree with depth limit L (no state repeated on the path),
-prints them as text and writes Graphviz pictures to img/.
+Builds the BFS tree (repeated states not expanded) and a depth limited DFS tree,
+prints them and writes the pictures to img/.
 
-Usage
------
     python eight_puzzle.py
-    python eight_puzzle.py --start 123046758 --limit 3
     python eight_puzzle.py --start 023145786 --limit 4
 """
 
@@ -31,7 +21,6 @@ MOVES = [("Up", -3), ("Down", 3), ("Left", -1), ("Right", 1)]
 
 
 def successors(state):
-    """(action, new_state) for every legal move of the blank."""
     b = state.index(0)
     r, c = divmod(b, 3)
     for name, delta in MOVES:
@@ -48,9 +37,8 @@ def fmt(state):
     return "\n".join(" ".join(str(v) if v else "_" for v in state[i:i + 3]) for i in (0, 3, 6))
 
 
-# ---------------------------------------------------------------------- #
 def complete_tree_counts(start, depth):
-    """Number of nodes per level of the complete search tree (all actions)."""
+    """How many nodes the full tree has on every level (repeated states included)."""
     level, counts = [start], [1]
     for _ in range(depth):
         level = [s for st in level for _, s in successors(st)]
@@ -59,17 +47,16 @@ def complete_tree_counts(start, depth):
 
 
 def bfs_tree(start, goal=GOAL, max_nodes=400):
-    """Breadth first graph search, goal test when a node is generated."""
     tree = SearchTree("8-Puzzle - BFS search tree (repeated states not expanded)")
     root = tree.add(fmt(start))
     if start == goal:
         tree.nodes[root]["status"] = "goal"
         return tree, root
-    frontier = deque([(root, start)])
+    queue = deque([(root, start)])
     seen = {start}
     k = 0
-    while frontier and len(tree.nodes) < max_nodes:
-        nid, state = frontier.popleft()
+    while queue and len(tree.nodes) < max_nodes:
+        nid, state = queue.popleft()
         k += 1
         tree.set_order(nid, k)
         for action, child in successors(state):
@@ -82,12 +69,12 @@ def bfs_tree(start, goal=GOAL, max_nodes=400):
                 tree.mark_path(cid)
                 return tree, cid
             seen.add(child)
-            frontier.append((cid, child))
+            queue.append((cid, child))
     return tree, None
 
 
 def dfs_tree(start, limit, goal=GOAL):
-    """Depth-limited DFS; a state already on the current path is not repeated."""
+    """Depth limited DFS, a state already on the current path is not visited again."""
     tree = SearchTree(f"8-Puzzle - DFS search tree (depth limit L = {limit})")
     counter = [0]
 
@@ -117,7 +104,6 @@ def dfs_tree(start, limit, goal=GOAL):
     return tree, goal_id
 
 
-# ---------------------------------------------------------------------- #
 COLORS = {"normal": "#ffffff", "path": "#d7ecff", "goal": "#c8f0c8",
           "repeated": "#eeeeee", "cutoff": "#fff6d6", "pruned": "#fde2e2"}
 BORDER = {"normal": "#555555", "path": "#1f6fb2", "goal": "#1d7a1d",
@@ -125,7 +111,7 @@ BORDER = {"normal": "#555555", "path": "#1f6fb2", "goal": "#1d7a1d",
 
 
 def html_grid(node):
-    """Graphviz HTML label: the 3x3 board."""
+    """Draws the board as a small table for Graphviz."""
     rows = [r.split() for r in node["label"].split("\n")]
     bg, border = COLORS[node["status"]], BORDER[node["status"]]
     font = "#888888" if node["status"] == "repeated" else "#000000"
@@ -192,8 +178,10 @@ def main():
     dfs, dfs_goal = dfs_tree(start, args.limit)
     print(f"DFS search tree with depth limit {args.limit}  (#k = order of visit)")
     print("\n".join(dfs.to_text()))
-    print(f"\nDFS: {len(dfs.nodes)} nodes generated, "
-          f"{'goal found at depth ' + str(dfs.nodes[dfs_goal]['depth']) if dfs_goal is not None else 'no goal within the limit'}")
+    if dfs_goal is not None:
+        print(f"\nDFS: {len(dfs.nodes)} nodes generated, goal found at depth {dfs.nodes[dfs_goal]['depth']}")
+    else:
+        print(f"\nDFS: {len(dfs.nodes)} nodes generated, no goal within the limit")
 
     if bfs_goal is not None:
         path, nid = [], bfs_goal
